@@ -31,10 +31,10 @@ SCROLL_DEADZONE     = 0.020
 FINGER_STABLE       = 10       # frames (was 20 — halved for faster response)
 FINGER_COOLDOWN     = 0.8      # seconds between tab-jump fires
 
-CLAP_MIN_DIST       = 0.30
-CLAP_MIN_VEL        = 0.004
-DOUBLE_CLAP_WIN     = 1.5
-CLAP_DEBOUNCE       = 0.40
+CLAP_CLOSE_THRESH   = 0.40   # palm centres this close → clap fires
+CLAP_RESET_THRESH   = 0.55   # palm centres must reach here before next clap
+DOUBLE_CLAP_WIN     = 1.5    # seconds between clap 1 and clap 2
+CLAP_DEBOUNCE       = 0.30   # min gap between two individual clap events
 
 SWIPE_MIN_DISP      = 0.20
 SWIPE_MAX_FRAMES    = 24
@@ -46,6 +46,9 @@ SPIDERMAN_COOLDOWN  = 3.0
 
 BOTH_L_STABLE       = 12
 BOTH_L_COOLDOWN     = 2.5
+
+RIGHT_L_STABLE      = 30   # ~1 second at 30 fps
+RIGHT_L_COOLDOWN    = 2.5
 
 CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),
@@ -72,19 +75,8 @@ def _palm_center(lm):
 
 
 def _count_fingers(lm):
-    """Return 1–4 based on index→pinky only. Use _is_open_hand() for 5."""
+    """Return 1–4 based on index→pinky only (thumb excluded)."""
     return sum(1 for i in range(1, 5) if lm[TIPS[i]].y < lm[PIPS[i]].y)
-
-
-def _is_open_hand(lm):
-    """All 5 fingers extended: index–pinky up, AND thumb tip is both above the
-    index MCP *and* spread laterally away from it (two independent guards)."""
-    fingers_up = all(lm[TIPS[i]].y < lm[PIPS[i]].y for i in range(1, 5))
-    if not fingers_up:
-        return False
-    thumb_high    = lm[4].y < lm[5].y               # tip above index knuckle
-    thumb_lateral = abs(lm[4].x - lm[5].x) > 0.09  # spread away sideways
-    return thumb_high and thumb_lateral
 
 
 def _pinch_dist(lm):
@@ -198,19 +190,19 @@ class GestureEngine(QThread):
         finger_stable    = {}
         spiderman_stable = {}
         l_hand_flags     = {}
+        right_l_stable   = {}
         # Timing
         finger_cd_until    = 0.0
         swipe_cd_until     = 0.0
         spiderman_cd_until = 0.0
         both_l_cd_until    = 0.0
+        right_l_cd_until   = 0.0
 
         # Two-hand running state
         both_l_frames = 0
 
         # Clap state
-        clap_approaching    = False
-        clap_min_dist_seen  = float('inf')
-        prev_dist           = None
+        clap_ready          = True   # True = hands are apart, ready for next clap
         first_clap_time     = 0.0
         pending_double      = False
         clap_debounce_until = 0.0
@@ -259,15 +251,29 @@ class GestureEngine(QThread):
                     fist        = _is_fist(lm)
                     pdist       = _pinch_dist(lm)
                     is_pinching = (pdist < PINCH_THRESH) and not fist
-                    open_hand   = _is_open_hand(lm)
-                    nf          = 5 if open_hand else _count_fingers(lm)
+                    nf          = _count_fingers(lm)
                     palm_x      = _palm_center(lm)[0]
                     is_spider   = _is_spiderman(lm) and not fist
                     is_l        = _is_l_hand(lm) and not fist
 
                     l_hand_flags[idx] = is_l
 
-                    # L-hand takes priority — skip other single-hand gestures
+                    # Right-L → close tab (index up, thumb out, others curled, right hand)
+                    if is_l and hand_side == 'Right':
+                        sc = right_l_stable.get(idx, 0) + 1
+                        right_l_stable[idx] = sc
+                        if sc == RIGHT_L_STABLE and now > right_l_cd_until:
+                            self._controller.close_tab()
+                            self.status_msg.emit('Close Tab')
+                            right_l_cd_until  = now + RIGHT_L_COOLDOWN
+                            right_l_stable[idx] = 0
+                        pinching.pop(idx, None); swipe_start.pop(idx, None)
+                        finger_stable.pop(idx, None); spiderman_stable.pop(idx, None)
+                        continue
+                    else:
+                        right_l_stable[idx] = 0
+
+                    # Left-L takes priority — skip other single-hand gestures
                     if is_l:
                         pinching.pop(idx, None); swipe_start.pop(idx, None)
                         finger_stable.pop(idx, None); spiderman_stable.pop(idx, None)
@@ -354,45 +360,45 @@ class GestureEngine(QThread):
 
 
                 # Double clap (always active so you can toggle on/off)
+                # State machine with hysteresis — no velocity math needed.
+                # Hands cross below CLAP_CLOSE_THRESH → clap fires.
+                # Hands must reach CLAP_RESET_THRESH before next clap is armed.
                 if len(hands) == 2:
                     c0 = _palm_center(hands[0])
                     c1 = _palm_center(hands[1])
                     dist = math.sqrt((c0[0]-c1[0])**2 + (c0[1]-c1[1])**2)
-                    if prev_dist is not None:
-                        vel = dist - prev_dist
-                        if vel < 0:
-                            clap_approaching = True
-                            if dist < clap_min_dist_seen:
-                                clap_min_dist_seen = dist
-                        elif vel > CLAP_MIN_VEL and clap_approaching:
-                            if clap_min_dist_seen < CLAP_MIN_DIST and now > clap_debounce_until:
-                                clap_debounce_until = now + CLAP_DEBOUNCE
-                                if pending_double and now - first_clap_time < DOUBLE_CLAP_WIN:
-                                    new_active = not active
-                                    with QMutexLocker(self._mutex):
-                                        self._active = new_active
-                                    self.active_changed.emit(new_active)
-                                    self.status_msg.emit('Active' if new_active else 'Inactive')
-                                    pending_double      = False
-                                    first_clap_time     = 0.0
-                                    clap_debounce_until = now + 1.5
-                                elif not pending_double:
-                                    pending_double  = True
-                                    first_clap_time = now
-                            clap_approaching   = False
-                            clap_min_dist_seen = float('inf')
-                    prev_dist = dist
+
+                    if dist < CLAP_CLOSE_THRESH and clap_ready and now > clap_debounce_until:
+                        clap_ready          = False
+                        clap_debounce_until = now + CLAP_DEBOUNCE
+                        if pending_double and now - first_clap_time < DOUBLE_CLAP_WIN:
+                            new_active = not active
+                            with QMutexLocker(self._mutex):
+                                self._active = new_active
+                            self.active_changed.emit(new_active)
+                            self.status_msg.emit('Active' if new_active else 'Inactive')
+                            pending_double      = False
+                            first_clap_time     = 0.0
+                            clap_debounce_until = now + 1.5
+                        elif not pending_double:
+                            pending_double  = True
+                            first_clap_time = now
+                            self.status_msg.emit('Clap 1 — clap again…')
+
+                    if dist > CLAP_RESET_THRESH:
+                        clap_ready = True
+
                     if pending_double and now - first_clap_time > DOUBLE_CLAP_WIN:
                         pending_double = False; first_clap_time = 0.0
                 else:
-                    prev_dist = None
+                    clap_ready = True   # hands lost → always re-arm
 
             else:
                 pinching.clear(); pinch_anchor.clear()
                 swipe_start.clear(); finger_stable.clear()
                 spiderman_stable.clear(); l_hand_flags.clear()
+                right_l_stable.clear()
                 both_l_frames = 0
-                prev_dist = None
 
             # Status badge
             label = "ACTIVE" if active else "INACTIVE"
@@ -493,6 +499,14 @@ class MacOSController:
         subprocess.run(
             ['osascript', '-e',
              'tell application "System Events" to keystroke "t" '
+             'using {command down}'],
+            capture_output=True, timeout=1,
+        )
+
+    def close_tab(self):
+        subprocess.run(
+            ['osascript', '-e',
+             'tell application "System Events" to keystroke "w" '
              'using {command down}'],
             capture_output=True, timeout=1,
         )

@@ -62,6 +62,7 @@ from gesture_engine import GestureEngine
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _LOGO         = os.path.join(_PROJECT_ROOT, 'Sideswipe-Logo.png')
+_RIFF         = os.path.join(_PROJECT_ROOT, 'IronManRiff.mp3')
 _BOOKMARKS_PATH = os.path.expanduser('~/.sideswipe_bookmarks.json')
 
 # ── Stylesheet ────────────────────────────────────────────────────────────────
@@ -115,11 +116,12 @@ _GESTURES = [
     ("Fist",              "Rest / no action"),
     ("Swipe left",        "Previous tab"),
     ("Swipe right",       "Next tab"),
-    ("1–5 fingers",       "Jump to tab 1–5"),
+    ("1–4 fingers",       "Jump to tab 1–4"),
     ("Pinch + move",      "Scroll page"),
-    ("Both hands L",          "New tab"),
-    ("Left hand Spiderman",   "Open bookmark 1"),
-    ("Right hand Spiderman",  "Open bookmark 2"),
+    ("Both hands L",      "New tab"),
+    ("Left hand L",       "Close tab"),
+    ("Left Spiderman",    "Open bookmark 1"),
+    ("Right Spiderman",   "Open bookmark 2"),
     ("Double clap",       "Toggle on / off"),
 ]
 
@@ -164,7 +166,7 @@ class SideswipeWindow(QMainWindow):
                     return json.load(f)
             except Exception:
                 pass
-        return {'spiderman_left': '', 'spiderman_right': ''}
+        return {'spiderman_left': '', 'spiderman_right': '', 'riff_enabled': True}
 
     def _save_bookmarks(self):
         try:
@@ -286,6 +288,28 @@ class SideswipeWindow(QMainWindow):
         d.addWidget(lbl_l)
         d.addSpacing(14)
 
+        # Divider
+        sep3 = QFrame(); sep3.setObjectName('hsep'); sep3.setFrameShape(QFrame.Shape.HLine)
+        d.addWidget(sep3)
+        d.addSpacing(14)
+
+        # Sound settings
+        hdr3 = QLabel("SOUND"); hdr3.setObjectName('section-hdr')
+        d.addWidget(hdr3)
+        d.addSpacing(10)
+
+        riff_row = QHBoxLayout()
+        riff_lbl = QLabel("Iron Man Riff")
+        riff_lbl.setObjectName('bm-label')
+        self._riff_toggle = ToggleSwitch()
+        self._riff_toggle.setChecked(self._bookmarks.get('riff_enabled', True))
+        self._riff_toggle.toggled.connect(self._on_riff_toggled)
+        riff_row.addWidget(riff_lbl)
+        riff_row.addStretch()
+        riff_row.addWidget(self._riff_toggle)
+        d.addLayout(riff_row)
+        d.addSpacing(14)
+
         # Status
         self._status_lbl = QLabel("Double clap to activate")
         self._status_lbl.setObjectName('status-lbl')
@@ -303,6 +327,14 @@ class SideswipeWindow(QMainWindow):
     def _save_spider_right_url(self):
         self._bookmarks['spiderman_right'] = self._url_spider_r.text().strip()
         self._save_bookmarks()
+
+    def _on_riff_toggled(self, val: bool):
+        self._bookmarks['riff_enabled'] = val
+        self._save_bookmarks()
+
+    def _play_riff(self):
+        if os.path.exists(_RIFF):
+            subprocess.Popen(['afplay', _RIFF])
 
     # ── Frame polling ─────────────────────────────────────────────────────────
 
@@ -343,6 +375,8 @@ class SideswipeWindow(QMainWindow):
         self._status_lbl.setText(
             "Active — gestures on" if active else "Inactive — double clap to activate"
         )
+        if active and self._bookmarks.get('riff_enabled', True):
+            self._play_riff()
 
     @pyqtSlot(str)
     def _on_status(self, msg: str):
