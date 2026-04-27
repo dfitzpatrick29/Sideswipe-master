@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew list *)",
+      "Bash(pyenv versions *)",
+      "Read(//Library/Frameworks/Python.framework/**)",
+      "Read(//Users/user/Library/**)",
+      "Bash(python3.11 --version)",
+      "Bash(pip3.14 index *)",
+      "Bash(/Library/Frameworks/Python.framework/Versions/3.14/bin/pip3 index *)",
+      "Bash(xcode-select -p)",
+      "Bash(python3.11 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(cp /Users/user/Downloads/sideswipe-master/index.html /tmp/sideswipe-commit/index.html)",
+      "Bash(cp /Users/user/Downloads/sideswipe-master/logo.png /tmp/sideswipe-commit/logo.png)",
+      "Bash(grep -E \"\\\\.\\(yaml|yml|json|txt|md\\)$|requirements\")",
+      "Bash(.venv/bin/pip show *)",
+      "Bash(chmod +x /Users/user/Downloads/Sideswipe-master/Sideswipe.app/Contents/MacOS/Sideswipe)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(git -C /Users/user/Downloads/Sideswipe-master status)",
+      "Bash(git -C /Users/user/Downloads/Sideswipe-master remote -v)"
+    ]
+  }
+}

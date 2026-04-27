@@ -1,0 +1,13 @@
+#!/bin/bash
+# Launcher for Sideswipe.app
+# This script lives at Sideswipe.app/Contents/MacOS/Sideswipe
+# The project root is three levels up (../../..)
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+cd "$PROJECT_DIR"
+
+# Log to /tmp for debugging
+exec "$PROJECT_DIR/.venv/bin/python" "$PROJECT_DIR/src/app.py" \
+    >> /tmp/sideswipe.log 2>&1

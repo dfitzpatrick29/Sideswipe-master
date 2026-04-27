@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sideswipe — Gesture Control for Your Browser</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #111113;
+      --surface: #1a1a1d;
+      --surface2: #222226;
+      --border: #2e2e33;
+      --text: #e2e2e5;
+      --muted: #888890;
+      --accent: #7c3aed;
+      --accent-light: #9d5ff5;
+      --blue: #3b82f6;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 56px;
+      background: rgba(17,17,19,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .nav-logo img { height: 28px; }
+    .nav-logo-text { font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+    nav ul { list-style: none; display: flex; gap: 28px; }
+    nav ul a { color: var(--muted); text-decoration: none; font-size: .875rem; transition: color .15s; }
+    nav ul a:hover { color: var(--text); }
+    .nav-gh {
+      font-size: .8rem; font-weight: 600; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 14px; text-decoration: none; transition: border-color .15s, color .15s;
+    }
+    .nav-gh:hover { border-color: #555; color: var(--text); }
+
+    /* ── HERO ── */
+    #hero {
+      padding: 140px 48px 100px;
+      max-width: 760px;
+    }
+    .eyebrow {
+      font-size: .75rem; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--accent-light);
+      margin-bottom: 20px;
+    }
+    #hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 800; line-height: 1.1; letter-spacing: -.03em;
+      margin-bottom: 20px; color: #fff;
+    }
+    #hero p {
+      font-size: 1.05rem; color: var(--muted); max-width: 520px;
+      line-height: 1.75; margin-bottom: 36px;
+    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      display: inline-block; padding: 11px 24px; border-radius: 7px;
+      font-size: .9rem; font-weight: 600; text-decoration: none; transition: opacity .15s;
+    }
+    .btn-filled { background: var(--accent); color: #fff; }
+    .btn-filled:hover { background: var(--accent-light); }
+    .btn-outline {
+      border: 1px solid var(--border); color: var(--muted);
+    }
+    .btn-outline:hover { border-color: #555; color: var(--text); }
+
+    /* ── SECTIONS ── */
+    .section { padding: 90px 48px; max-width: 1060px; margin: 0 auto; }
+    .section-label {
+      font-size: .72rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--accent-light); margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 800;
+      letter-spacing: -.02em; color: #fff; margin-bottom: 14px;
+    }
+    .section-body { color: var(--muted); font-size: .95rem; max-width: 560px; line-height: 1.75; }
+
+    /* ── HOW IT WORKS ── */
+    .steps {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1px; background: var(--border); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-top: 48px;
+    }
+    .step { background: var(--surface); padding: 28px 24px; }
+    .step-num {
+      font-size: .7rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--accent-light); margin-bottom: 12px;
+    }
+    .step h3 { font-size: .95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .step p { font-size: .82rem; color: var(--muted); line-height: 1.65; }
+
+    /* ── GESTURES ── */
+    #gestures { border-top: 1px solid var(--border); }
+    .gesture-table { width: 100%; border-collapse: collapse; margin-top: 40px; }
+    .gesture-table th {
+      text-align: left; font-size: .7rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--muted); padding: 0 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .gesture-table td {
+      padding: 14px 16px; font-size: .875rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .gesture-table tr:last-child td { border-bottom: none; }
+    .gesture-table tr:hover td { background: var(--surface); }
+    .gesture-name { font-weight: 600; color: #fff; white-space: nowrap; }
+    .gesture-action { color: var(--text); }
+    .gesture-desc { color: var(--muted); font-size: .8rem; }
+
+    /* ── FEATURES ── */
+    #features { border-top: 1px solid var(--border); }
+    .feat-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1px; background: var(--border); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-top: 48px;
+    }
+    .feat { background: var(--surface); padding: 26px 22px; }
+    .feat h3 { font-size: .9rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .feat p { font-size: .8rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── TECH ── */
+    #tech { border-top: 1px solid var(--border); }
+    .tech-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px; }
+    .tech-tag {
+      font-size: .78rem; font-weight: 500; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 5px 12px; background: var(--surface);
+    }
+
+    /* ═══════════════════════════════════
+       DEMO SECTION
+    ═══════════════════════════════════ */
+    #demo { border-top: 1px solid var(--border); padding: 90px 48px 120px; }
+    #demo .section-body { margin-bottom: 40px; }
+
+    .browser-window {
+      border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      background: #1e1e21;
+    }
+
+    /* ── Browser chrome ── */
+    .b-chrome {
+      background: #28282c;
+      padding: 10px 12px 0;
+      user-select: none;
+    }
+    .b-dots { display: flex; gap: 6px; margin-bottom: 8px; padding: 2px 4px; }
+    .b-dots span { width: 11px; height: 11px; border-radius: 50%; }
+    .b-dot-r { background: #ff5f57; } .b-dot-y { background: #febc2e; } .b-dot-g { background: #28c841; }
+
+    /* Chrome-style tabs */
+    .b-tabstrip {
+      display: flex; align-items: flex-end;
+      gap: 0; padding-left: 4px;
+      position: relative;
+    }
+    .b-tab {
+      position: relative;
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 14px 8px;
+      font-size: .76rem; font-weight: 500;
+      color: #8a8a8f;
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      min-width: 0; max-width: 180px;
+      transition: color .15s, background .15s;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex-shrink: 1;
+      background: transparent;
+      z-index: 1;
+    }
+    .b-tab:hover { color: #ccc; background: rgba(255,255,255,.05); }
+    .b-tab.active {
+      background: #2b2b2f;
+      color: #e5e5e7;
+      border-color: #3a3a40;
+      z-index: 3;
+    }
+    /* curved notch where active tab meets content */
+    .b-tab.active::before,
+    .b-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      width: 8px; height: 8px;
+      pointer-events: none;
+    }
+    .b-tab.active::before {
+      left: -8px;
+      background: radial-gradient(circle at 100% 0, transparent 8px, #2b2b2f 8px);
+    }
+    .b-tab.active::after {
+      right: -8px;
+      background: radial-gradient(circle at 0 0, transparent 8px, #2b2b2f 8px);
+    }
+    .b-tab-favicon {
+      width: 13px; height: 13px; border-radius: 2px;
+      flex-shrink: 0; background: #444;
+    }
+    .b-tab-favicon.t0 { background: #4f46e5; }
+    .b-tab-favicon.t1 { background: #059669; }
+    .b-tab-favicon.t2 { background: #d97706; }
+    .b-tab-favicon.t3 { background: #dc2626; }
+    .b-tab-favicon.t4 { background: #0284c7; }
+
+    .b-tab-close {
+      margin-left: auto; flex-shrink: 0;
+      width: 16px; height: 16px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: transparent;
+      transition: background .1s, color .1s;
+    }
+    .b-tab:hover .b-tab-close,
+    .b-tab.active .b-tab-close { color: #888; }
+    .b-tab-close:hover { background: rgba(255,255,255,.1); color: #ccc !important; }
+
+    /* address bar row */
+    .b-addressrow {
+      background: #2b2b2f;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #3a3a40;
+    }
+    .b-nav-btns { display: flex; gap: 4px; }
+    .b-nav-btn {
+      width: 26px; height: 26px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #666;
+      transition: background .1s, color .1s;
+    }
+    .b-nav-btn:hover { background: rgba(255,255,255,.07); color: #aaa; }
+    .b-address {
+      flex: 1; background: #222225; border: 1px solid #3a3a40;
+      border-radius: 20px; padding: 4px 14px; font-size: .75rem;
+      color: #888; font-family: inherit;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── Main layout: page + camera side by side ── */
+    .b-body {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      height: 460px;
+    }
+
+    /* ── Page content area ── */
+    .b-page {
+      overflow-y: auto;
+      background: #fff;
+      color: #111;
+      /* NO scroll-behavior: smooth — JS pinch scroll stacks up and locks */
+    }
+    .b-page::-webkit-scrollbar { width: 8px; }
+    .b-page::-webkit-scrollbar-track { background: #f1f1f1; }
+    .b-page::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+    .page-view { display: none; padding: 28px 32px 40px; font-size: .88rem; line-height: 1.7; }
+    .page-view.active { display: block; }
+
+    /* realistic page elements */
+    .pg-breadcrumb { font-size: .72rem; color: #888; margin-bottom: 18px; }
+    .pg-breadcrumb a { color: #1a6cbc; text-decoration: none; }
+    .pg-breadcrumb a:hover { text-decoration: underline; }
+    .pg-img {
+      width: 100%; height: 180px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      object-fit: cover;
+      display: block;
+      background: #e0e0e0;
+    }
+    .pg-meta { font-size: .72rem; color: #888; margin-bottom: 14px; }
+    .pg-h1 { font-size: 1.3rem; font-weight: 800; line-height: 1.3; margin-bottom: 10px; color: #111; }
+    .pg-lead { font-size: .93rem; color: #333; font-weight: 400; margin-bottom: 16px; line-height: 1.75; }
+    .pg-p { color: #444; margin-bottom: 14px; font-size: .85rem; }
+    .pg-h2 { font-size: 1rem; font-weight: 700; color: #111; margin: 22px 0 10px; }
+    .pg-hr { border: none; border-top: 1px solid #e5e5e5; margin: 20px 0; }
+    .pg-link { color: #1a6cbc; text-decoration: none; }
+    .pg-link:hover { text-decoration: underline; }
+
+    /* swipe overlays */
+    .page-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; opacity: 0; transition: opacity .2s;
+    }
+    .page-overlay.flash-l { background: linear-gradient(to right, rgba(99,102,241,.2), transparent); }
+    .page-overlay.flash-r { background: linear-gradient(to left, rgba(99,102,241,.2), transparent); }
+    .page-overlay.show { opacity: 1; }
+
+    .b-page-wrap { position: relative; overflow: hidden; }
+
+    /* ── Camera panel ── */
+    .b-camera {
+      display: flex; flex-direction: column;
+      background: #111113;
+      border-left: 1px solid #3a3a40;
+    }
+    .b-cam-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid #2a2a2e;
+      font-size: .72rem; font-weight: 600;
+      color: var(--muted);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cam-status { display: flex; align-items: center; gap: 6px; }
+    .cam-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #333; transition: background .3s;
+    }
+    .cam-dot.on { background: #22c55e; box-shadow: 0 0 5px #22c55e88; }
+    .cam-dot.err { background: #ef4444; }
+    #fps-label { font-size: .68rem; color: #333; }
+
+    .b-cam-video-wrap {
+      flex: 1; background: #0a0a0c;
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #cam-video {
+      width: 100%; height: 100%; object-fit: cover;
+      transform: scaleX(-1); display: none;
+    }
+    #cam-canvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      transform: scaleX(-1); pointer-events: none;
+    }
+    .cam-idle {
+      text-align: center; padding: 20px;
+    }
+    .cam-idle p { font-size: .78rem; color: #555; line-height: 1.6; margin-bottom: 14px; }
+    #btn-cam {
+      background: var(--accent); color: #fff; border: none;
+      padding: 9px 18px; border-radius: 6px; font-size: .82rem;
+      font-weight: 600; cursor: pointer; transition: background .15s;
+    }
+    #btn-cam:hover { background: var(--accent-light); }
+
+    .b-cam-feedback {
+      padding: 10px 14px;
+      border-top: 1px solid #2a2a2e;
+    }
+    .cf-label { font-size: .65rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #444; margin-bottom: 4px; }
+    .cf-gesture { font-size: .82rem; font-weight: 600; color: var(--muted); min-height: 1.2em; }
+    .cf-hint { font-size: .68rem; color: #3a3a3e; margin-top: 5px; line-height: 1.5; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 48px;
+      font-size: .8rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* toast */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: #1e1e22; border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 20px;
+      font-size: .82rem; font-weight: 600; color: var(--text);
+      opacity: 0; pointer-events: none; z-index: 500;
+      transition: opacity .2s, transform .2s;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 720px) {
+      nav ul { display: none; }
+      nav { padding: 0 20px; }
+      #hero { padding: 120px 20px 80px; }
+      .section { padding: 60px 20px; }
+      .b-body { grid-template-columns: 1fr; }
+      .b-camera { display: none; }
+      footer { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <img src="logo.png" alt="Sideswipe" />
+    <span class="nav-logo-text">Sideswipe</span>
+  </a>
+  <ul>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#gestures">Gestures</a></li>
+    <li><a href="#demo">Try it</a></li>
+  </ul>
+  <a class="nav-gh" href="https://github.com/PreFir3/sideswipe" target="_blank">GitHub</a>
+</nav>
+
+<!-- HERO -->
+<div id="hero">
+  <p class="eyebrow">Open source · macOS · Python</p>
+  <h1>Control your browser<br>with your hands.</h1>
+  <p>Sideswipe uses your webcam and real-time AI hand tracking to let you swipe tabs, scroll pages, and navigate — no keyboard, no mouse required.</p>
+  <div class="hero-actions">
+    <a href="#demo" class="btn btn-filled">Try the demo</a>
+    <a href="https://github.com/PreFir3/sideswipe" class="btn btn-outline" target="_blank">View on GitHub</a>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how">
+  <p class="section-label">How it works</p>
+  <h2 class="section-title">No special hardware needed.</h2>
+  <p class="section-body">All you need is a standard webcam. The system runs entirely on your machine — nothing is sent to a server.</p>
+  <div class="steps">
+    <div class="step">
+      <p class="step-num">Step 01</p>
+      <h3>Camera sees your hand</h3>
+      <p>MediaPipe detects 21 landmarks on each hand, 30 times per second, at any angle or distance.</p>
+    </div>
+    <div class="step">
+      <p class="step-num">Step 02</p>
+      <h3>Gestures are classified</h3>
+      <p>Movement speed, direction, finger count, and pinch distance are all measured against calibrated thresholds before anything fires.</p>
+    </div>
+    <div class="step">
+      <p class="step-num">Step 03</p>
+      <h3>macOS gets the command</h3>
+      <p>Confirmed gestures send real keyboard shortcuts and scroll events via AppleScript — the system sees it as normal input.</p>
+    </div>
+    <div class="step">
+      <p class="step-num">Step 04</p>
+      <h3>Cooldowns prevent accidents</h3>
+      <p>Every gesture requires multiple consecutive confirmation frames and a cooldown period before it can fire again.</p>
+    </div>
+  </div>
+</section>
+
+<!-- GESTURES TABLE -->
+<section class="section" id="gestures">
+  <p class="section-label">Gesture reference</p>
+  <h2 class="section-title">Everything the system can do.</h2>
+  <p class="section-body">Eight gesture states, each running in priority order. Higher-priority gestures (like clap) block lower-priority ones from firing at the same time.</p>
+  <table class="gesture-table">
+    <thead>
+      <tr>
+        <th>Gesture</th>
+        <th>Action</th>
+        <th>How it's detected</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="gesture-name">Double Clap</td>
+        <td class="gesture-action">Toggle system on / off</td>
+        <td class="gesture-desc">Two hands come within 0.1 units of each other at &gt;0.5 units/frame, twice within 0.8 seconds</td>
+      </tr>
+      <tr>
+        <td class="gesture-name">Swipe Left</td>
+        <td class="gesture-action">Previous browser tab</td>
+        <td class="gesture-desc">Hand moves &gt;150px horizontally in under 1.5s, confirmed over 6 frames</td>
+      </tr>
+      <tr>
+        <td class="gesture-name">Swipe Right</td>
+        <td class="gesture-action">Next browser tab</td>
+        <td class="gesture-desc">Same as swipe left, opposite direction</td>
+      </tr>
+      <tr>
+        <td class="gesture-name">Pinch + Move</td>
+        <td class="gesture-action">Scroll page up or down</td>
+        <td class="gesture-desc">Thumb-to-index distance &lt;0.06, then vertical hand movement drives continuous scroll</td>
+      </tr>
+      <tr>
+        <td class="gesture-name">Finger Count (1–5)</td>
+        <td class="gesture-action">Jump directly to that tab</td>
+        <td class="gesture-desc">Finger count stable across 20 consecutive frames at 0.9+ confidence</td>
+      </tr>
+      <tr>
+        <td class="gesture-name">Fist</td>
+        <td class="gesture-action">Rest / no action</td>
+        <td class="gesture-desc">All four fingers curled; system ignores this as the default resting position</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <p class="section-label">Under the hood</p>
+  <h2 class="section-title">Built to not misfire.</h2>
+  <p class="section-body">Every threshold in the codebase has a comment explaining what problem it was tuned to solve. Stability was the priority, not sensitivity.</p>
+  <div class="feat-grid">
+    <div class="feat">
+      <h3>Multi-frame confirmation</h3>
+      <p>No gesture fires on a single frame. Each one requires a consistent signal across multiple frames before being accepted.</p>
+    </div>
+    <div class="feat">
+      <h3>Gesture priority queue</h3>
+      <p>When multiple signals appear simultaneously, a defined priority order decides which one wins. Clap always beats swipe.</p>
+    </div>
+    <div class="feat">
+      <h3>Per-gesture cooldowns</h3>
+      <p>After a gesture fires, that gesture is locked out for 1–1.5 seconds. Swipe once, get one tab switch.</p>
+    </div>
+    <div class="feat">
+      <h3>Pinch disables swipe</h3>
+      <p>While the pinch-scroll gesture is active, swipe detection is suspended so scrolling never accidentally switches tabs.</p>
+    </div>
+    <div class="feat">
+      <h3>Head calibration</h3>
+      <p>At startup, the system records a neutral head angle over 90 frames. It recalibrates automatically if your posture shifts.</p>
+    </div>
+    <div class="feat">
+      <h3>Runs fully local</h3>
+      <p>No cloud, no API keys, no data leaving your machine. MediaPipe runs the hand model on your GPU if available.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section class="section" id="tech">
+  <p class="section-label">Stack</p>
+  <h2 class="section-title">What it's built with.</h2>
+  <p class="section-body">Python on macOS. The gesture logic is in plain Python — no ML training required beyond the MediaPipe base model.</p>
+  <div class="tech-row">
+    <span class="tech-tag">Python 3.11</span>
+    <span class="tech-tag">MediaPipe 0.10</span>
+    <span class="tech-tag">OpenCV</span>
+    <span class="tech-tag">NumPy</span>
+    <span class="tech-tag">PyObjC</span>
+    <span class="tech-tag">AppleScript</span>
+    <span class="tech-tag">SciPy</span>
+    <span class="tech-tag">macOS</span>
+  </div>
+</section>
+
+<!-- ══ DEMO ══ -->
+<div id="demo" class="section" style="max-width:1060px">
+  <p class="section-label">Interactive demo</p>
+  <h2 class="section-title">Try it in the browser.</h2>
+  <p class="section-body" style="margin-bottom:36px">Enable your camera, then swipe your hand left or right to switch tabs. Pinch your thumb and index finger together and move your hand up or down to scroll. No data is stored or transmitted.</p>
+
+  <div class="browser-window">
+
+    <!-- Chrome UI -->
+    <div class="b-chrome">
+      <div class="b-dots">
+        <span class="b-dot-r"></span>
+        <span class="b-dot-y"></span>
+        <span class="b-dot-g"></span>
+      </div>
+      <div class="b-tabstrip" id="tabstrip">
+        <div class="b-tab active" data-idx="0">
+          <span class="b-tab-favicon t0"></span>
+          <span>Space Exploration</span>
+          <span class="b-tab-close">&#x2715;</span>
+        </div>
+        <div class="b-tab" data-idx="1">
+          <span class="b-tab-favicon t1"></span>
+          <span>Urban Gardening</span>
+          <span class="b-tab-close">&#x2715;</span>
+        </div>
+        <div class="b-tab" data-idx="2">
+          <span class="b-tab-favicon t2"></span>
+          <span>Music Theory</span>
+          <span class="b-tab-close">&#x2715;</span>
+        </div>
+        <div class="b-tab" data-idx="3">
+          <span class="b-tab-favicon t3"></span>
+          <span>Science Daily</span>
+          <span class="b-tab-close">&#x2715;</span>
+        </div>
+        <div class="b-tab" data-idx="4">
+          <span class="b-tab-favicon t4"></span>
+          <span>Photography</span>
+          <span class="b-tab-close">&#x2715;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Address row -->
+    <div class="b-addressrow">
+      <div class="b-nav-btns">
+        <div class="b-nav-btn" title="Back">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        </div>
+        <div class="b-nav-btn" title="Forward">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 19l7-7-7-7"/></svg>
+        </div>
+        <div class="b-nav-btn" title="Refresh">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/></svg>
+        </div>
+      </div>
+      <div class="b-address" id="address-bar">https://example.com/space-exploration</div>
+    </div>
+
+    <!-- Body -->
+    <div class="b-body">
+
+      <!-- Page content -->
+      <div class="b-page-wrap" style="position:relative;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="b-page" id="b-page">
+
+          <!-- Tab 0: Space -->
+          <div class="page-view active" data-idx="0">
+            <p class="pg-breadcrumb"><a href="#">Home</a> / <a href="#">Science</a> / Space Exploration</p>
+            <img class="pg-img" src="https://picsum.photos/seed/nasa-space/800/360" alt="Space exploration" />
+            <p class="pg-meta">April 18, 2026 &nbsp;·&nbsp; 8 min read &nbsp;·&nbsp; Science &amp; Technology</p>
+            <h1 class="pg-h1">The new era of space exploration is already underway</h1>
+            <p class="pg-lead">Reusable rockets have cut launch costs by over 90 percent in the past decade. Missions once considered a generation away are now scheduled for the late 2020s.</p>
+            <p class="pg-p">The Artemis program aims to return humans to the lunar surface by 2026 and establish a permanent presence there. A Gateway station in lunar orbit will serve as a staging point for eventual crewed missions to Mars, reducing the risks of deep-space travel by giving crews a known resupply point.</p>
+            <h2 class="pg-h2">Mars in the near term</h2>
+            <p class="pg-p">Current projections place the first crewed Mars mission between 2028 and 2032. Autonomous habitat construction robots are being tested in analogue environments in Utah and Iceland, designed to prepare landing sites months before any crew arrives.</p>
+            <p class="pg-p">The economics of asteroid mining are approaching viability. Rare earth elements critical for electronics exist in abundance on certain asteroid types. Several companies have already filed claim frameworks with international bodies.</p>
+            <hr class="pg-hr">
+            <h2 class="pg-h2">James Webb updates</h2>
+            <p class="pg-p">The telescope has now identified structured, massive galaxies at redshifts above z=12 — galaxies that should not exist under standard cosmological models. The data suggests either much faster early star formation or a revision of accepted constants. <a class="pg-link" href="#">Read the paper</a>.</p>
+          </div>
+
+          <!-- Tab 1: Gardening -->
+          <div class="page-view" data-idx="1">
+            <p class="pg-breadcrumb"><a href="#">Home</a> / <a href="#">Lifestyle</a> / Gardening</p>
+            <img class="pg-img" src="https://picsum.photos/seed/urban-garden/800/360" alt="Urban gardening" />
+            <p class="pg-meta">March 29, 2026 &nbsp;·&nbsp; 5 min read &nbsp;·&nbsp; Home &amp; Lifestyle</p>
+            <h1 class="pg-h1">Urban gardening in small spaces: a practical guide</h1>
+            <p class="pg-lead">You don't need a backyard. Balconies, windowsills, and vertical wall systems have turned city apartments into productive micro-farms for millions of people.</p>
+            <p class="pg-p">Pocket planters mounted on south-facing walls can support up to 40 plants in under four square feet. Strawberries, herbs, lettuce, and cherry tomatoes all thrive vertically with simple drip irrigation setups that cost under $30 to assemble.</p>
+            <h2 class="pg-h2">Hydroponics at home</h2>
+            <p class="pg-p">Modern hydroponic kits start around $80 and produce a continuous supply of leafy greens on a kitchen counter. Plants grow 30 to 50 percent faster without soil and use around 90 percent less water. The main upfront cost is the grow light if your space doesn't get direct sun.</p>
+            <p class="pg-p">Community garden waiting lists in most major cities now stretch two to three years. Cities including Singapore, Tokyo, and Amsterdam have begun integrating green growing space into building codes for any new construction above a certain height.</p>
+            <hr class="pg-hr">
+            <p class="pg-p">The mental health case for urban growing is increasingly well-documented. Regular contact with living plants correlates with lower cortisol levels and reduced reported anxiety — effects that appear even with small container gardens on a windowsill. <a class="pg-link" href="#">See the research</a>.</p>
+          </div>
+
+          <!-- Tab 2: Music -->
+          <div class="page-view" data-idx="2">
+            <p class="pg-breadcrumb"><a href="#">Home</a> / <a href="#">Education</a> / Music</p>
+            <img class="pg-img" src="https://picsum.photos/seed/piano-music/800/360" alt="Music theory" />
+            <p class="pg-meta">April 2, 2026 &nbsp;·&nbsp; 6 min read &nbsp;·&nbsp; Arts &amp; Education</p>
+            <h1 class="pg-h1">Music theory for people who gave up on it</h1>
+            <p class="pg-lead">The circle of fifths sounds intimidating until the moment it clicks. After that, you'll start seeing the same patterns in almost every song you've ever loved.</p>
+            <p class="pg-p">Nearly a third of all popular music in the last century sits on the same four-chord sequence. In C major: C, F, G, back to C. Play those four chords in any order, and you're already making something recognisable. The theory exists to explain why it works, not to complicate it.</p>
+            <h2 class="pg-h2">Major vs. minor</h2>
+            <p class="pg-p">The difference between a major and a minor chord is a single note moved down one half step. That one change shifts the emotional colour of the entire chord — from resolved and open to tense and inward. Understanding that makes transposing between keys intuitive rather than memorised.</p>
+            <p class="pg-p">Scales give you a palette. Chords are the brushstrokes. Once you've internalised the natural chords of a key, improvisation starts to feel like a conversation rather than a calculation. Your fingers start suggesting things your ears then confirm.</p>
+            <hr class="pg-hr">
+            <p class="pg-p">The most effective way to learn is not through exercises but through songs you already know. Pick five songs you can hum. Find their chords. You'll notice the patterns within the first hour. <a class="pg-link" href="#">Recommended starting songs</a>.</p>
+          </div>
+
+          <!-- Tab 3: Science -->
+          <div class="page-view" data-idx="3">
+            <p class="pg-breadcrumb"><a href="#">Home</a> / <a href="#">Science</a> / Research</p>
+            <img class="pg-img" src="https://picsum.photos/seed/science-lab/800/360" alt="Science" />
+            <p class="pg-meta">April 22, 2026 &nbsp;·&nbsp; 4 min read &nbsp;·&nbsp; Research</p>
+            <h1 class="pg-h1">Science this week: proteins, constants, and sleep</h1>
+            <p class="pg-lead">Three findings worth knowing about — protein folding applications, a new Hubble constant measurement, and what sleep does to immune memory.</p>
+            <p class="pg-p">AlphaFold's structural predictions are now being used to design novel enzymes that break down plastics at room temperature. Early lab results show degradation rates twelve times higher than any previously known organism. Scale remains an open problem.</p>
+            <h2 class="pg-h2">The Hubble tension, again</h2>
+            <p class="pg-p">A new gravitational lensing measurement puts the Hubble constant at 73.4 km/s/Mpc — significantly above the 67.4 predicted by early-universe CMB data. The discrepancy is now at 5-sigma. At that confidence level, either the measurement method has a systematic error nobody has found, or the standard model needs revision.</p>
+            <h2 class="pg-h2">Sleep and vaccine response</h2>
+            <p class="pg-p">A Stanford study found that immune T-cells encoding pathogen memory consolidate during slow-wave sleep. Subjects sleeping fewer than six hours showed 40 percent weaker responses to novel antigens three months post-vaccination. The effect held after controlling for age, weight, and baseline immune health. <a class="pg-link" href="#">Full paper</a>.</p>
+          </div>
+
+          <!-- Tab 4: Photography -->
+          <div class="page-view" data-idx="4">
+            <p class="pg-breadcrumb"><a href="#">Home</a> / <a href="#">Creative</a> / Photography</p>
+            <img class="pg-img" src="https://picsum.photos/seed/photography-camera/800/360" alt="Photography" />
+            <p class="pg-meta">March 15, 2026 &nbsp;·&nbsp; 7 min read &nbsp;·&nbsp; Creative</p>
+            <h1 class="pg-h1">The exposure triangle, explained without the jargon</h1>
+            <p class="pg-lead">Aperture, shutter speed, and ISO. Understanding how these three interact gives you complete creative control over any camera in any situation.</p>
+            <p class="pg-p">Aperture controls depth of field. A wide aperture (f/1.8) blurs the background and isolates your subject. A narrow aperture (f/11) keeps everything from foreground to horizon in focus. For portraits, open up. For landscapes, close down.</p>
+            <h2 class="pg-h2">Shutter speed and motion</h2>
+            <p class="pg-p">Fast shutters (1/1000s and above) freeze motion. A sprinter mid-stride, a bird's wings, a splash of water — all sharp. Slow shutters (1/15s and below) let motion blur across the frame. Waterfalls turn silky. Headlights become light trails. Both are tools, not mistakes.</p>
+            <h2 class="pg-h2">ISO and noise</h2>
+            <p class="pg-p">ISO amplifies the sensor's signal. Higher ISO means more sensitivity in low light, but also more digital noise. Modern cameras handle ISO 3200 acceptably well. A slightly noisy photo is almost always better than a blurry one.</p>
+            <hr class="pg-hr">
+            <p class="pg-p">Composition rules — rule of thirds, leading lines, framing within a frame — are starting points, not laws. The best photographers know the rules well enough to break them deliberately. <a class="pg-link" href="#">Composition exercises</a>.</p>
+          </div>
+
+        </div><!-- /b-page -->
+
+        <!-- overlays -->
+        <div class="page-overlay flash-l" id="flash-l"></div>
+        <div class="page-overlay flash-r" id="flash-r"></div>
+        <div class="inactive-overlay" id="inactive-overlay">
+          <span class="inactive-label">Inactive — double clap to activate</span>
+        </div>
+      </div><!-- /b-page-wrap -->
+
+      <!-- Camera panel -->
+      <div class="b-camera">
+        <div class="b-cam-header">
+          <div class="cam-status">
+            <div class="cam-dot" id="cam-dot"></div>
+            <span id="cam-status-text">Camera off</span>
+          </div>
+          <span id="fps-label"></span>
+        </div>
+
+        <div class="b-cam-video-wrap" id="cam-wrap">
+          <video id="cam-video" playsinline autoplay muted></video>
+          <canvas id="cam-canvas"></canvas>
+          <div class="cam-idle" id="cam-idle">
+            <p>Enable your camera to control the browser with hand gestures. No video is stored or sent anywhere.</p>
+            <button id="btn-cam">Enable camera</button>
+          </div>
+        </div>
+
+        <div class="b-cam-feedback">
+          <div class="cf-label">Gesture</div>
+          <div class="cf-gesture" id="cf-gesture">Waiting for camera</div>
+          <div class="cf-hint">Swipe left/right to switch tabs &middot; Pinch + move to scroll</div>
+        </div>
+      </div>
+
+    </div><!-- /b-body -->
+  </div><!-- /browser-window -->
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>Built by Daniel Fitzpatrick, Dylan Eytan &amp; Greyson Mackle</span>
+  <span><a href="https://github.com/PreFir3/sideswipe" target="_blank">GitHub</a> &nbsp;&middot;&nbsp; MIT License</span>
+</footer>
+
+<div id="toast"></div>
+
+<!-- ════════════════ GESTURE JS ════════════════ -->
+<style>
+  .inactive-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.45);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none; z-index: 10;
+    transition: opacity .25s;
+  }
+  .inactive-label {
+    font-size: .78rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: rgba(255,255,255,.5);
+    border: 1px solid rgba(255,255,255,.15); border-radius: 6px;
+    padding: 8px 16px; background: rgba(0,0,0,.4);
+  }
+</style>
+<script type="module">
+import { HandLandmarker, FilesetResolver }
+  from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
+// ── Tab data ──────────────────────────────────
+const TABS = [
+  'https://example.com/space-exploration',
+  'https://example.com/urban-gardening',
+  'https://example.com/music-theory',
+  'https://example.com/science-daily',
+  'https://example.com/photography',
+];
+let activeTab = 0;
+
+// ── DOM ───────────────────────────────────────
+const video           = document.getElementById('cam-video');
+const canvas          = document.getElementById('cam-canvas');
+const ctx             = canvas.getContext('2d');
+const camIdle         = document.getElementById('cam-idle');
+const camDot          = document.getElementById('cam-dot');
+const camStatus       = document.getElementById('cam-status-text');
+const cfGesture       = document.getElementById('cf-gesture');
+const fpsLabel        = document.getElementById('fps-label');
+const addressBar      = document.getElementById('address-bar');
+const bPage           = document.getElementById('b-page');
+const flashL          = document.getElementById('flash-l');
+const flashR          = document.getElementById('flash-r');
+const toast           = document.getElementById('toast');
+const inactiveOverlay = document.getElementById('inactive-overlay');
+
+// ── Landmark indices (mirrors Python hand.py exactly) ──
+const TIPS = [4, 8, 12, 16, 20];
+const PIPS = [3, 7, 11, 15, 19];
+
+// ── Active / inactive state ───────────────────
+// System starts INACTIVE. Double clap toggles it.
+// NOTE: setActive(false) is called at the bottom after all let declarations.
+let isActive = false;
+
+function setActive(val) {
+  isActive = val;
+  inactiveOverlay.style.opacity = val ? '0' : '1';
+  inactiveOverlay.style.pointerEvents = val ? 'none' : 'all';
+  camDot.className = 'cam-dot' + (val ? ' on' : '');
+  if (!val) {
+    cfGesture.textContent = 'Inactive — double clap to activate';
+    // Reset gesture state on deactivation
+    sxStart = null; sxDir = null; sxDirFrames = 0; sxFrames = 0;
+    pinching = false; pinchAnchorY = null;
+    fingerHistory = [];
+  } else {
+    cfGesture.textContent = 'Active — show gestures';
+    showToast('Active');
+  }
+}
+
+// ── Double clap state ─────────────────────────
+// Local-minimum approach: a clap is detected when the hands stop
+// approaching each other and start moving apart, IF they got close enough.
+// This means we don't need hands to reach a fixed "apart" threshold
+// between claps — a natural bounce is enough.
+const CLAP_MIN_DIST   = 0.32;  // palms must reach at least this close to count
+const CLAP_MIN_VEL    = 0.005; // min per-frame separation to confirm bounce
+const DOUBLE_CLAP_WIN = 1500;  // ms — window to land second clap
+const CLAP_DEBOUNCE   = 180;   // ms — ignore claps closer together than this
+
+let clapPrevDist    = null;
+let clapMinDist     = Infinity;
+let clapApproaching = false;
+let clapTimes       = [];
+
+// Use palm center (wrist + 4 MCP bases) rather than wrist alone —
+// wrists stay wide apart even when palms touch.
+function palmCenter(lm) {
+  const pts = [0, 5, 9, 13, 17];
+  let x = 0, y = 0;
+  for (const i of pts) { x += lm[i].x; y += lm[i].y; }
+  return { x: x / pts.length, y: y / pts.length };
+}
+
+function handDist(lm0, lm1) {
+  const a = palmCenter(lm0), b = palmCenter(lm1);
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+}
+
+function processClap(lm0, lm1, now) {
+  const dist = handDist(lm0, lm1);
+
+  if (clapPrevDist !== null) {
+    const vel = dist - clapPrevDist; // negative = approaching, positive = separating
+
+    if (vel < 0) {
+      // Hands getting closer — track the minimum distance reached
+      clapApproaching = true;
+      if (dist < clapMinDist) clapMinDist = dist;
+    } else if (vel > CLAP_MIN_VEL && clapApproaching) {
+      // Hands just reversed direction (bounced) — evaluate if this was a clap
+      if (clapMinDist < CLAP_MIN_DIST) {
+        const lastClap = clapTimes.length ? clapTimes[clapTimes.length - 1] : 0;
+        if (now - lastClap > CLAP_DEBOUNCE) {
+          clapTimes.push(now);
+          clapTimes = clapTimes.filter(t => now - t < DOUBLE_CLAP_WIN);
+          if (clapTimes.length >= 2) {
+            clapTimes = [];
+            setActive(!isActive);
+          }
+        }
+      }
+      // Reset for next approach
+      clapApproaching = false;
+      clapMinDist = Infinity;
+    }
+  }
+
+  clapPrevDist = dist;
+}
+
+// ── Swipe state ───────────────────────────────
+const SWIPE_MIN      = 0.15;
+const SWIPE_FRAMES   = 5;
+const SWIPE_WINDOW   = 50;
+const SWIPE_COOLDOWN = 1000;
+
+let sxStart = null, sxFrames = 0, sxDir = null, sxDirFrames = 0;
+let lastSwipe = 0;
+
+// ── Pinch / scroll state ──────────────────────
+// Anchor-based: record Y when pinch starts, then drive scroll by offset from anchor.
+// "Move below anchor → scroll down continuously" — no frame-delta accumulation.
+const PINCH_THRESH   = 0.07;
+const SCROLL_SCALE   = 10;   // px per 1% of frame offset from anchor
+const SCROLL_DEADZONE = 0.025; // normalized — must move this far from anchor before scroll starts
+
+let pinching = false, pinchAnchorY = null;
+
+// ── Finger count / tab select state ───────────
+const FINGER_STABLE   = 20;
+const FINGER_COOLDOWN = 1500;
+
+let fingerHistory  = [];
+let lastFingerTime = 0;
+let lastFingerCount = -1;
+
+// ── FPS ───────────────────────────────────────
+let fCount = 0, fTime = performance.now();
+
+// ── Initial state (must come after all let declarations) ──
+setActive(false);
+
+// ── Tab switching ─────────────────────────────
+function switchTab(idx, dir) {
+  if (idx < 0 || idx >= TABS.length || idx === activeTab) return;
+  activeTab = idx;
+  document.querySelectorAll('.b-tab').forEach((el, i) =>
+    el.classList.toggle('active', i === idx));
+  document.querySelectorAll('.page-view').forEach((el, i) =>
+    el.classList.toggle('active', i === idx));
+  addressBar.textContent = TABS[idx];
+  bPage.scrollTop = 0;
+  if (dir) {
+    const fl = dir === 'left' ? flashL : flashR;
+    fl.classList.add('show');
+    setTimeout(() => fl.classList.remove('show'), 250);
+  }
+  const label = document.querySelectorAll('.b-tab')[idx].querySelector('span:nth-child(2)').textContent;
+  showToast((dir === 'left' ? '← ' : dir === 'right' ? '→ ' : '') + label);
+}
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+
+document.querySelectorAll('.b-tab').forEach((el, i) =>
+  el.addEventListener('click', () => switchTab(i, null)));
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft')  switchTab(activeTab - 1, 'right');
+  if (e.key === 'ArrowRight') switchTab(activeTab + 1, 'left');
+});
+
+// ── Camera start ──────────────────────────────
+let landmarker = null;
+
+document.getElementById('btn-cam').addEventListener('click', async () => {
+  camStatus.textContent = 'Requesting camera…';
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480, facingMode: 'user' }
+    });
+  } catch (e) {
+    camStatus.textContent = 'Camera denied';
+    camDot.className = 'cam-dot err';
+    cfGesture.textContent = 'Camera access was blocked';
+    return;
+  }
+
+  video.srcObject = stream;
+  video.style.display = 'block';
+  camIdle.style.display = 'none';
+  camStatus.textContent = 'Loading model…';
+
+  try {
+    const vision = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm'
+    );
+    landmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+        delegate: 'GPU'
+      },
+      runningMode: 'VIDEO',
+      numHands: 2,                        // need both hands for clap
+      minHandDetectionConfidence: 0.5,
+      minHandPresenceConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+  } catch (e) {
+    camStatus.textContent = 'Model failed to load';
+    camDot.className = 'cam-dot err';
+    console.error('MediaPipe error:', e);
+    return;
+  }
+
+  camStatus.textContent = 'Inactive';
+  cfGesture.textContent = 'Inactive — double clap to activate';
+
+  video.addEventListener('loadedmetadata', () => {
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+  });
+
+  requestAnimationFrame(loop);
+});
+
+// ── Detection loop ────────────────────────────
+function loop() {
+  requestAnimationFrame(loop);
+  if (!landmarker || video.readyState < 2) return;
+
+  if (canvas.width !== video.videoWidth && video.videoWidth > 0) {
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  fCount++;
+  const now = performance.now();
+  if (now - fTime >= 1000) {
+    fpsLabel.textContent = Math.round(fCount * 1000 / (now - fTime)) + ' fps';
+    fCount = 0; fTime = now;
+  }
+
+  const result = landmarker.detectForVideo(video, now);
+  const hands  = result.landmarks || [];
+
+  // Always draw all visible hands
+  for (const lm of hands) drawHand(lm);
+
+  // Clap detection runs regardless of active state (how you toggle it)
+  if (hands.length >= 2) {
+    processClap(hands[0], hands[1], now);
+  }
+
+  // Gesture control only when active and at least one hand present
+  if (!isActive || hands.length === 0) {
+    if (hands.length === 0) {
+      sxStart = null; sxDir = null; sxDirFrames = 0; sxFrames = 0;
+      if (pinching) { pinching = false; pinchAnchorY = null; }
+      fingerHistory = [];
+      if (isActive) cfGesture.textContent = 'No hand detected';
+    }
+    return;
+  }
+
+  processGesture(hands[0], now);
+}
+
+// ── Draw landmarks (matches agent.py colors exactly) ─
+// Lines:       (0,255,0)   BGR → #00ff00 green
+// Thumb tip:   (0,255,0)   BGR → #00ff00 green
+// Index tip:   (0,255,255) BGR → #ffff00 yellow
+// Middle tip:  (255,0,255) BGR → #ff00ff magenta
+// Other joints:(255,0,0)   BGR → #0000ff blue
+function drawHand(lm) {
+  const W = canvas.width, H = canvas.height;
+
+  // Skeleton lines — green
+  ctx.strokeStyle = '#00ff00';
+  ctx.lineWidth = 2;
+  for (const {start, end} of HandLandmarker.HAND_CONNECTIONS) {
+    ctx.beginPath();
+    ctx.moveTo(lm[start].x * W, lm[start].y * H);
+    ctx.lineTo(lm[end].x * W,   lm[end].y * H);
+    ctx.stroke();
+  }
+
+  // Joint dots — per-landmark color
+  for (let i = 0; i < lm.length; i++) {
+    const p = lm[i];
+    let color;
+    if      (i === 4)  color = '#00ff00'; // thumb tip  — green
+    else if (i === 8)  color = '#ffff00'; // index tip  — yellow
+    else if (i === 12) color = '#ff00ff'; // middle tip — magenta
+    else               color = '#0000ff'; // everything else — blue
+
+    ctx.beginPath();
+    ctx.arc(p.x * W, p.y * H, 4, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+}
+
+// ── Finger count (exact Python hand.py logic) ─
+function countFingers(lm) {
+  let count = 0;
+  if (lm[TIPS[0]].x < lm[PIPS[0]].x) count++;       // thumb: horizontal
+  for (let i = 1; i < 5; i++) {
+    if (lm[TIPS[i]].y < lm[PIPS[i]].y) count++;      // others: vertical
+  }
+  return count;
+}
+
+// ── Fist detection ────────────────────────────
+// A fist is the default rest position — no gestures fire.
+// Middle, ring, and pinky all curled (tips below their DIP joints).
+// This is what distinguishes a fist from a pinch: in a pinch the
+// other fingers are relaxed/extended, not all tucked in.
+function isFist(lm) {
+  const indexCurled  = lm[TIPS[1]].y > lm[PIPS[1]].y; // 8 vs 7
+  const middleCurled = lm[TIPS[2]].y > lm[PIPS[2]].y; // 12 vs 11
+  const ringCurled   = lm[TIPS[3]].y > lm[PIPS[3]].y; // 16 vs 15
+  const pinkyCurled  = lm[TIPS[4]].y > lm[PIPS[4]].y; // 20 vs 19
+  return indexCurled && middleCurled && ringCurled && pinkyCurled;
+}
+
+// ── Gesture logic (single hand, active only) ──
+function processGesture(lm, now) {
+  const thumb = lm[4], index = lm[8];
+
+  // ── 0. Fist = resting position, nothing fires ──
+  if (isFist(lm)) {
+    sxStart = null; sxDir = null; sxDirFrames = 0; sxFrames = 0;
+    if (pinching) { pinching = false; pinchAnchorY = null; }
+    fingerHistory = [];
+    cfGesture.textContent = 'Fist — resting';
+    return;
+  }
+
+  // ── 1. Pinch scroll (anchor-based continuous scroll) ──
+  // Only reaches here if NOT a fist, so other fingers are relaxed/extended.
+  const pdx = thumb.x - index.x, pdy = thumb.y - index.y;
+  const isPinch = Math.sqrt(pdx*pdx + pdy*pdy) < PINCH_THRESH;
+  const midY = (thumb.y + index.y) / 2;
+
+  if (isPinch) {
+    if (!pinching) {
+      pinching = true;
+      pinchAnchorY = midY;   // anchor set once when pinch starts
+      cfGesture.textContent = 'Pinch — move up/down to scroll';
+    } else {
+      // Offset from anchor drives continuous scroll speed
+      const offset = midY - pinchAnchorY;
+      if (Math.abs(offset) > SCROLL_DEADZONE) {
+        // offset is normalized; map to pixels. Positive = hand below anchor = scroll down.
+        bPage.scrollTop += offset * SCROLL_SCALE * 100;
+        cfGesture.textContent = offset < 0 ? 'Scrolling up' : 'Scrolling down';
+      } else {
+        cfGesture.textContent = 'Pinch — move up/down to scroll';
+      }
+    }
+    sxStart = null; sxDir = null; sxDirFrames = 0; sxFrames = 0;
+    fingerHistory = [];
+    return;
+  }
+
+  if (pinching) { pinching = false; pinchAnchorY = null; }
+
+  // ── 2. Finger count → tab jump ──
+  const fc = countFingers(lm);
+  fingerHistory.push(fc);
+  if (fingerHistory.length > FINGER_STABLE) fingerHistory.shift();
+
+  if (fingerHistory.length === FINGER_STABLE) {
+    const allSame = fingerHistory.every(v => v === fingerHistory[0]);
+    const stable  = fingerHistory[0];
+
+    if (allSame && stable >= 1 && stable <= 5) {
+      if (stable !== lastFingerCount) {
+        cfGesture.textContent = `${stable} finger${stable > 1 ? 's' : ''} — hold to jump to tab ${stable}`;
+        lastFingerCount = stable;
+      }
+      if ((now - lastFingerTime) > FINGER_COOLDOWN && stable !== activeTab + 1) {
+        lastFingerTime = now;
+        fingerHistory = [];
+        switchTab(stable - 1, null);
+        showToast(`Tab ${stable}`);
+      }
+      sxStart = null; sxDir = null; sxDirFrames = 0; sxFrames = 0;
+      return;
+    }
+  }
+  lastFingerCount = -1;
+
+  // ── 3. Swipe ──
+  const x = lm[0].x;
+  if (sxStart === null) { sxStart = x; sxFrames = 0; sxDir = null; sxDirFrames = 0; }
+
+  sxFrames++;
+  const disp = x - sxStart;
+  const absD = Math.abs(disp);
+  const dir  = disp >= 0 ? 'right' : 'left';
+
+  if (dir === sxDir) { sxDirFrames++; } else { sxDir = dir; sxDirFrames = 1; }
+
+  cfGesture.textContent = absD > 0.05
+    ? `${dir === 'right' ? '→' : '←'} Swipe ${dir} (${Math.round(absD * 100)}%)`
+    : `Active — ${fc} finger${fc !== 1 ? 's' : ''}`;
+
+  if (absD >= SWIPE_MIN && sxDirFrames >= SWIPE_FRAMES && (now - lastSwipe) > SWIPE_COOLDOWN) {
+    lastSwipe = now;
+    sxStart = null; sxDir = null; sxDirFrames = 0; sxFrames = 0;
+    fingerHistory = [];
+    switchTab(dir === 'right' ? activeTab + 1 : activeTab - 1, dir === 'right' ? 'left' : 'right');
+  }
+
+  if (sxFrames > SWIPE_WINDOW) { sxStart = null; sxDir = null; sxDirFrames = 0; sxFrames = 0; }
+}
+</script>
+
+</body>
+</html>

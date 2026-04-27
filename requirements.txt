@@ -1,0 +1,21 @@
+# Sideswipe - Gesture Control System Requirements (macOS)
+#
+# Install with:  pip install -r requirements.txt
+# Python:        3.10 – 3.12 recommended (MediaPipe wheels).
+
+# Core Computer Vision & ML
+opencv-python>=4.5.0
+mediapipe>=0.10.0
+numpy>=1.23,<2
+scipy>=1.5.0
+
+# macOS native automation (scroll, keystrokes via AppleScript).
+# The umbrella 'pyobjc' pulls in AppKit/Cocoa that agent.py imports.
+pyobjc>=9.0 ; sys_platform == "darwin"
+
+# Desktop UI
+PyQt6>=6.5.0
+
+# Utilities
+Pillow>=8.0.0
+colorama>=0.4.4
