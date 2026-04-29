@@ -8,6 +8,4 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 cd "$PROJECT_DIR"
 
-# Log to /tmp for debugging
-exec "$PROJECT_DIR/.venv/bin/python" "$PROJECT_DIR/src/app.py" \
-    >> /tmp/sideswipe.log 2>&1
+exec "$PROJECT_DIR/.venv/bin/python" "$PROJECT_DIR/src/app.py"

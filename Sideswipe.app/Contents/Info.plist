@@ -25,6 +25,10 @@
     <true/>
     <key>NSCameraUsageDescription</key>
     <string>Sideswipe uses your camera to detect hand gestures for browser control.</string>
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Sideswipe needs Accessibility access to send keyboard shortcuts to your browser.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Sideswipe uses AppleScript to control browser tabs.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

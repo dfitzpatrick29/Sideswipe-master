@@ -9,7 +9,6 @@ import os
 import time
 import math
 import subprocess
-import urllib.request
 import threading
 
 import cv2
@@ -320,9 +319,12 @@ class GestureEngine(QThread):
                         sc += 1
                         spiderman_stable[idx] = (True, sc)
                         if sc == SPIDERMAN_STABLE and now > spiderman_cd_until:
-                            ev = f'spiderman_{hand_side.lower()}'   # 'spiderman_left' or 'spiderman_right'
+                            # Frame is flipped before MediaPipe sees it, so handedness
+                            # labels are inverted — correct them here.
+                            actual_side = 'right' if hand_side == 'Left' else 'left'
+                            ev = f'spiderman_{actual_side}'
                             self.gesture_event.emit(ev)
-                            self.status_msg.emit(f'Spiderman ({hand_side})')
+                            self.status_msg.emit(f'Spiderman ({actual_side.capitalize()})')
                             spiderman_cd_until = now + SPIDERMAN_COOLDOWN
                             spiderman_stable[idx] = (True, 0)
                     else:
@@ -421,10 +423,10 @@ class GestureEngine(QThread):
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(root, 'hand_landmarker.task')
         if not os.path.exists(path):
-            url = ('https://storage.googleapis.com/mediapipe-models/'
-                   'hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task')
-            print('Downloading hand landmarker model…')
-            urllib.request.urlretrieve(url, path)
+            raise FileNotFoundError(
+                f'hand_landmarker.task not found at {path}. '
+                'Ensure the model file is bundled with the app.'
+            )
         opts = vision.HandLandmarkerOptions(
             base_options=mp_python.BaseOptions(model_asset_path=path),
             num_hands=2,
