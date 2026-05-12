@@ -394,3 +394,25 @@ Head Tilt and Finger Scroll carry no explicit adjustment comments in config.py �
 This prototype sits squarely at the pressure/extraction/control pole. Every design decision — the high confidence thresholds, the confirmation-frame requirements, the cooldowns, the priority order — is oriented toward making the body a cleaner, more reliable input device. The user's hand movements are parsed for correctness against a command grammar, and the calibration history is entirely a record of reducing noise so that commands fire only when the system is certain. The gestures do not invite exploration or ambiguity; they are evaluated as either valid commands or discarded errors. The body is enrolled into efficient computer control, and the success criterion is whether the intended command executed accurately.
 
 The opposite pole would invert that relationship: instead of the system judging whether the body produced the correct command, the system would respond to continuous, unclassified movement with continuous, ambient change — perhaps altering the visual or sonic environment in proportion to the hand's trajectory, speed, or shape, without any binary pass/fail threshold. There would be no cooldowns, no confirmation frames, and no concept of an accidental trigger, because every movement would be meaningful on its own terms.
+
+
+### After Reviews (see tester-feedback-summary.md)
+
+    ### Summary
+     - Fixed Scrolling motion lag
+
+    Users noted the Scrolling Feeling Laggy or not smooth. We did some testing, and it didn't fee like it stuck to the user's hand well. We added a Midpoint the pinch starts from, and higher scroll speed depending on distance from scroll origin. Feels better to the mind.
+ - Fixed Double Clap mechanics
+ 
+    We heard a lot about the Double clab being janky or inconsistent, so we used reference images with our coding agent and walked it through how to track motion of our hands to make a more decisive and natural clap detector. In the future we might make it sound based not motion based. Oh, well. 
+
+    ### Dyptich Pole: See "4. Diptych Pole Note" @ Line 392
+
+    ### Known Limitations:
+             - Gesture recognition model is great at seeing stationary gestures, but has trouble tracking motion and motion speed to discern different movements. 
+              - Human hand can only make so many gestures without confusing with another gesture
+             - Lots of things people want in chrome - We can only do so much with two hands
+                 - Scrolling vs selecting
+                 - Tabs beyond Five
+                 - Keyboard shortcuts
+                 - Etc

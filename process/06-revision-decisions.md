@@ -1,4 +1,6 @@
  - Fixed Scrolling motion lag
-Users noted the Scrolling Feeling Laggy or not smooth. We did some testing, and it didn't fee like it stuck to the user's hand well. We added a Midpoint the pinch starts from, and higher scroll speed depending on distance from scroll origin. Feels better to the mind.
+
+    Users noted the Scrolling Feeling Laggy or not smooth. We did some testing, and it didn't fee like it stuck to the user's hand well. We added a Midpoint the pinch starts from, and higher scroll speed depending on distance from scroll origin. Feels better to the mind.
  - Fixed Double Clap mechanics
- We heard a lot about the Double clab being janky or inconsistent, so we used reference images with our coding agent and walked it through how to track motion of our hands to make a more decisive and natural clap detector. In the future we might make it sound based not motion based. Oh, well. 
+ 
+    We heard a lot about the Double clab being janky or inconsistent, so we used reference images with our coding agent and walked it through how to track motion of our hands to make a more decisive and natural clap detector. In the future we might make it sound based not motion based. Oh, well. 
