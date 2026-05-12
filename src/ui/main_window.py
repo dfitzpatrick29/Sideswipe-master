@@ -114,8 +114,6 @@ QLineEdit#url-input::placeholder { color: #404048; }
 
 _GESTURES = [
     ("Fist",              "Rest / no action"),
-    ("Swipe left",        "Previous tab"),
-    ("Swipe right",       "Next tab"),
     ("1–4 fingers",       "Jump to tab 1–4"),
     ("Pinch + move",      "Scroll page"),
     ("Both hands L",      "New tab"),
